@@ -1,0 +1,6 @@
+.idea
+*.pyc
+.env
+.DS_Store
+trends.json
+client/node_modules
