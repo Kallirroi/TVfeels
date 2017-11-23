@@ -74,7 +74,7 @@ var Root = React.createClass({
                 });
             });
         });
-        console.log(data);
+        // console.log(data);
         console.log("------------------------");
         return data;
     },
@@ -138,11 +138,11 @@ var Root = React.createClass({
             fontFamily: "\'Anonymous Pro\' !important",
             fontStyle: "normal",
             fontWeight: 700,
-            height: "91%",
+            height: "100%",
             width: "100%",
             position: "absolute",
             zIndex: 0,
-            top: "9%"
+            top: "0%"
         };
 
         var rootStyle = {
@@ -153,7 +153,7 @@ var Root = React.createClass({
         console.log("rendering with trend index: " + trendIndex);
         var cells = [];
         var data = clone(this.state.data);
-        console.log("data is", data);
+        // console.log("data is", data);
 
         for (var key in data) {
             if (data.hasOwnProperty(key)){
@@ -165,7 +165,7 @@ var Root = React.createClass({
                     item = {
                         text : val.text,
                         col : val.col,
-                        row : 6,
+                        row : 10,
                         scenes: []
                     }
                 }
@@ -185,8 +185,6 @@ var Root = React.createClass({
 
         return (
             <div style={rootStyle}>
-                <DateTitleBox batchIndex={trendIndex} setIndex={this.setIndex}/>
-                <TitleRow/>
                 <div style={divStyle}>
                     {cells}
                 </div>

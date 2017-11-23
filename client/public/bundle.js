@@ -45,7 +45,7 @@
 /*!***********************!*\
   !*** ./app/index.jsx ***!
   \***********************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
@@ -81,24 +81,24 @@
 	    }
 	};
 
-/***/ },
+/***/ }),
 /* 1 */
 /*!**************************!*\
   !*** ./~/react/react.js ***!
   \**************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	module.exports = __webpack_require__(/*! ./lib/React */ 2);
 
 
-/***/ },
+/***/ }),
 /* 2 */
 /*!******************************!*\
   !*** ./~/react/lib/React.js ***!
   \******************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -141,12 +141,12 @@
 	
 	module.exports = React;
 
-/***/ },
+/***/ }),
 /* 3 */
 /*!*********************************!*\
   !*** ./~/react/lib/ReactDOM.js ***!
   \*********************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -240,24 +240,113 @@
 	}
 	
 	module.exports = React;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 4 */
 /*!******************************!*\
   !*** ./~/process/browser.js ***!
   \******************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	// shim for using process in browser
-	
 	var process = module.exports = {};
+	
+	// cached from whatever global is present so that test runners that stub it
+	// don't break things.  But we need to wrap it in a try catch in case it is
+	// wrapped in strict mode code which doesn't define any globals.  It's inside a
+	// function because try/catches deoptimize in certain engines.
+	
+	var cachedSetTimeout;
+	var cachedClearTimeout;
+	
+	function defaultSetTimout() {
+	    throw new Error('setTimeout has not been defined');
+	}
+	function defaultClearTimeout () {
+	    throw new Error('clearTimeout has not been defined');
+	}
+	(function () {
+	    try {
+	        if (typeof setTimeout === 'function') {
+	            cachedSetTimeout = setTimeout;
+	        } else {
+	            cachedSetTimeout = defaultSetTimout;
+	        }
+	    } catch (e) {
+	        cachedSetTimeout = defaultSetTimout;
+	    }
+	    try {
+	        if (typeof clearTimeout === 'function') {
+	            cachedClearTimeout = clearTimeout;
+	        } else {
+	            cachedClearTimeout = defaultClearTimeout;
+	        }
+	    } catch (e) {
+	        cachedClearTimeout = defaultClearTimeout;
+	    }
+	} ())
+	function runTimeout(fun) {
+	    if (cachedSetTimeout === setTimeout) {
+	        //normal enviroments in sane situations
+	        return setTimeout(fun, 0);
+	    }
+	    // if setTimeout wasn't available but was latter defined
+	    if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
+	        cachedSetTimeout = setTimeout;
+	        return setTimeout(fun, 0);
+	    }
+	    try {
+	        // when when somebody has screwed with setTimeout but no I.E. maddness
+	        return cachedSetTimeout(fun, 0);
+	    } catch(e){
+	        try {
+	            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
+	            return cachedSetTimeout.call(null, fun, 0);
+	        } catch(e){
+	            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
+	            return cachedSetTimeout.call(this, fun, 0);
+	        }
+	    }
+	
+	
+	}
+	function runClearTimeout(marker) {
+	    if (cachedClearTimeout === clearTimeout) {
+	        //normal enviroments in sane situations
+	        return clearTimeout(marker);
+	    }
+	    // if clearTimeout wasn't available but was latter defined
+	    if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
+	        cachedClearTimeout = clearTimeout;
+	        return clearTimeout(marker);
+	    }
+	    try {
+	        // when when somebody has screwed with setTimeout but no I.E. maddness
+	        return cachedClearTimeout(marker);
+	    } catch (e){
+	        try {
+	            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
+	            return cachedClearTimeout.call(null, marker);
+	        } catch (e){
+	            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
+	            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
+	            return cachedClearTimeout.call(this, marker);
+	        }
+	    }
+	
+	
+	
+	}
 	var queue = [];
 	var draining = false;
 	var currentQueue;
 	var queueIndex = -1;
 	
 	function cleanUpNextTick() {
+	    if (!draining || !currentQueue) {
+	        return;
+	    }
 	    draining = false;
 	    if (currentQueue.length) {
 	        queue = currentQueue.concat(queue);
@@ -273,7 +362,7 @@
 	    if (draining) {
 	        return;
 	    }
-	    var timeout = setTimeout(cleanUpNextTick);
+	    var timeout = runTimeout(cleanUpNextTick);
 	    draining = true;
 	
 	    var len = queue.length;
@@ -290,7 +379,7 @@
 	    }
 	    currentQueue = null;
 	    draining = false;
-	    clearTimeout(timeout);
+	    runClearTimeout(timeout);
 	}
 	
 	process.nextTick = function (fun) {
@@ -302,7 +391,7 @@
 	    }
 	    queue.push(new Item(fun, args));
 	    if (queue.length === 1 && !draining) {
-	        setTimeout(drainQueue, 0);
+	        runTimeout(drainQueue);
 	    }
 	};
 	
@@ -330,6 +419,10 @@
 	process.removeListener = noop;
 	process.removeAllListeners = noop;
 	process.emit = noop;
+	process.prependListener = noop;
+	process.prependOnceListener = noop;
+	
+	process.listeners = function (name) { return [] }
 	
 	process.binding = function (name) {
 	    throw new Error('process.binding is not supported');
@@ -342,12 +435,12 @@
 	process.umask = function() { return 0; };
 
 
-/***/ },
+/***/ }),
 /* 5 */
 /*!******************************************!*\
   !*** ./~/react/lib/ReactCurrentOwner.js ***!
   \******************************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -380,12 +473,12 @@
 	
 	module.exports = ReactCurrentOwner;
 
-/***/ },
+/***/ }),
 /* 6 */
 /*!**********************************************!*\
   !*** ./~/react/lib/ReactDOMTextComponent.js ***!
   \**********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -514,14 +607,14 @@
 	});
 	
 	module.exports = ReactDOMTextComponent;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 7 */
 /*!**********************************************!*\
   !*** ./~/react/lib/DOMChildrenOperations.js ***!
   \**********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -652,14 +745,14 @@
 	});
 	
 	module.exports = DOMChildrenOperations;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 8 */
 /*!*******************************!*\
   !*** ./~/react/lib/Danger.js ***!
   \*******************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -806,14 +899,14 @@
 	};
 	
 	module.exports = Danger;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 9 */
 /*!********************************************!*\
   !*** ./~/fbjs/lib/ExecutionEnvironment.js ***!
   \********************************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -852,12 +945,12 @@
 	
 	module.exports = ExecutionEnvironment;
 
-/***/ },
+/***/ }),
 /* 10 */
 /*!*********************************************!*\
   !*** ./~/fbjs/lib/createNodesFromMarkup.js ***!
   \*********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -943,14 +1036,14 @@
 	}
 	
 	module.exports = createNodesFromMarkup;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 11 */
 /*!********************************************!*\
   !*** ./~/fbjs/lib/createArrayFromMixed.js ***!
   \********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -1038,12 +1131,12 @@
 	
 	module.exports = createArrayFromMixed;
 
-/***/ },
+/***/ }),
 /* 12 */
 /*!*******************************!*\
   !*** ./~/fbjs/lib/toArray.js ***!
   \*******************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -1102,14 +1195,14 @@
 	}
 	
 	module.exports = toArray;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 13 */
 /*!*********************************!*\
   !*** ./~/fbjs/lib/invariant.js ***!
   \*********************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -1161,14 +1254,14 @@
 	}
 	
 	module.exports = invariant;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 14 */
 /*!*************************************!*\
   !*** ./~/fbjs/lib/getMarkupWrap.js ***!
   \*************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -1265,14 +1358,14 @@
 	}
 	
 	module.exports = getMarkupWrap;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 15 */
 /*!*************************************!*\
   !*** ./~/fbjs/lib/emptyFunction.js ***!
   \*************************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -1313,12 +1406,12 @@
 	
 	module.exports = emptyFunction;
 
-/***/ },
+/***/ }),
 /* 16 */
 /*!***************************************************!*\
   !*** ./~/react/lib/ReactMultiChildUpdateTypes.js ***!
   \***************************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -1353,12 +1446,12 @@
 	
 	module.exports = ReactMultiChildUpdateTypes;
 
-/***/ },
+/***/ }),
 /* 17 */
 /*!*********************************!*\
   !*** ./~/fbjs/lib/keyMirror.js ***!
   \*********************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -1408,14 +1501,14 @@
 	};
 	
 	module.exports = keyMirror;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 18 */
 /*!**********************************!*\
   !*** ./~/react/lib/ReactPerf.js ***!
   \**********************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -1513,14 +1606,14 @@
 	}
 	
 	module.exports = ReactPerf;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 19 */
 /*!*************************************!*\
   !*** ./~/react/lib/setInnerHTML.js ***!
   \*************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -1613,12 +1706,12 @@
 	
 	module.exports = setInnerHTML;
 
-/***/ },
+/***/ }),
 /* 20 */
 /*!***************************************!*\
   !*** ./~/react/lib/setTextContent.js ***!
   \***************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -1661,12 +1754,12 @@
 	
 	module.exports = setTextContent;
 
-/***/ },
+/***/ }),
 /* 21 */
 /*!****************************************************!*\
   !*** ./~/react/lib/escapeTextContentForBrowser.js ***!
   \****************************************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -1707,12 +1800,12 @@
 	
 	module.exports = escapeTextContentForBrowser;
 
-/***/ },
+/***/ }),
 /* 22 */
 /*!**********************************************!*\
   !*** ./~/react/lib/DOMPropertyOperations.js ***!
   \**********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -1939,14 +2032,14 @@
 	});
 	
 	module.exports = DOMPropertyOperations;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 23 */
 /*!************************************!*\
   !*** ./~/react/lib/DOMProperty.js ***!
   \************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -2182,14 +2275,14 @@
 	};
 	
 	module.exports = DOMProperty;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 24 */
 /*!******************************************************!*\
   !*** ./~/react/lib/quoteAttributeValueForBrowser.js ***!
   \******************************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -2218,12 +2311,12 @@
 	
 	module.exports = quoteAttributeValueForBrowser;
 
-/***/ },
+/***/ }),
 /* 25 */
 /*!*******************************!*\
   !*** ./~/fbjs/lib/warning.js ***!
   \*******************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2014-2015, Facebook, Inc.
@@ -2282,14 +2375,14 @@
 	}
 	
 	module.exports = warning;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 26 */
 /*!*********************************************************!*\
   !*** ./~/react/lib/ReactComponentBrowserEnvironment.js ***!
   \*********************************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -2333,12 +2426,12 @@
 	
 	module.exports = ReactComponentBrowserEnvironment;
 
-/***/ },
+/***/ }),
 /* 27 */
 /*!*********************************************!*\
   !*** ./~/react/lib/ReactDOMIDOperations.js ***!
   \*********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -2434,14 +2527,14 @@
 	});
 	
 	module.exports = ReactDOMIDOperations;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 28 */
 /*!***********************************!*\
   !*** ./~/react/lib/ReactMount.js ***!
   \***********************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -3293,14 +3386,14 @@
 	});
 	
 	module.exports = ReactMount;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 29 */
 /*!*************************************************!*\
   !*** ./~/react/lib/ReactBrowserEventEmitter.js ***!
   \*************************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -3627,12 +3720,12 @@
 	
 	module.exports = ReactBrowserEventEmitter;
 
-/***/ },
+/***/ }),
 /* 30 */
 /*!***************************************!*\
   !*** ./~/react/lib/EventConstants.js ***!
   \***************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -3727,12 +3820,12 @@
 	
 	module.exports = EventConstants;
 
-/***/ },
+/***/ }),
 /* 31 */
 /*!***************************************!*\
   !*** ./~/react/lib/EventPluginHub.js ***!
   \***************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -4013,14 +4106,14 @@
 	};
 	
 	module.exports = EventPluginHub;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 32 */
 /*!********************************************!*\
   !*** ./~/react/lib/EventPluginRegistry.js ***!
   \********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -4242,14 +4335,14 @@
 	};
 	
 	module.exports = EventPluginRegistry;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 33 */
 /*!*****************************************!*\
   !*** ./~/react/lib/EventPluginUtils.js ***!
   \*****************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -4453,14 +4546,14 @@
 	};
 	
 	module.exports = EventPluginUtils;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 34 */
 /*!****************************************!*\
   !*** ./~/react/lib/ReactErrorUtils.js ***!
   \****************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -4539,14 +4632,14 @@
 	}
 	
 	module.exports = ReactErrorUtils;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 35 */
 /*!***************************************!*\
   !*** ./~/react/lib/accumulateInto.js ***!
   \***************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2014-2015, Facebook, Inc.
@@ -4607,14 +4700,14 @@
 	}
 	
 	module.exports = accumulateInto;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 36 */
 /*!*******************************************!*\
   !*** ./~/react/lib/forEachAccumulated.js ***!
   \*******************************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -4646,12 +4739,12 @@
 	
 	module.exports = forEachAccumulated;
 
-/***/ },
+/***/ }),
 /* 37 */
 /*!***********************************************!*\
   !*** ./~/react/lib/ReactEventEmitterMixin.js ***!
   \***********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -4692,12 +4785,12 @@
 	
 	module.exports = ReactEventEmitterMixin;
 
-/***/ },
+/***/ }),
 /* 38 */
 /*!****************************************!*\
   !*** ./~/react/lib/ViewportMetrics.js ***!
   \****************************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -4727,12 +4820,12 @@
 	
 	module.exports = ViewportMetrics;
 
-/***/ },
+/***/ }),
 /* 39 */
 /*!**************************************!*\
   !*** ./~/react/lib/Object.assign.js ***!
   \**************************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2014-2015, Facebook, Inc.
@@ -4782,12 +4875,12 @@
 	
 	module.exports = assign;
 
-/***/ },
+/***/ }),
 /* 40 */
 /*!*****************************************!*\
   !*** ./~/react/lib/isEventSupported.js ***!
   \*****************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -4850,12 +4943,12 @@
 	
 	module.exports = isEventSupported;
 
-/***/ },
+/***/ }),
 /* 41 */
 /*!*********************************************!*\
   !*** ./~/react/lib/ReactDOMFeatureFlags.js ***!
   \*********************************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -4876,12 +4969,12 @@
 	
 	module.exports = ReactDOMFeatureFlags;
 
-/***/ },
+/***/ }),
 /* 42 */
 /*!*************************************!*\
   !*** ./~/react/lib/ReactElement.js ***!
   \*************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2014-2015, Facebook, Inc.
@@ -5130,14 +5223,14 @@
 	};
 	
 	module.exports = ReactElement;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 43 */
 /*!******************************************!*\
   !*** ./~/react/lib/canDefineProperty.js ***!
   \******************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -5163,14 +5256,14 @@
 	}
 	
 	module.exports = canDefineProperty;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 44 */
 /*!****************************************************!*\
   !*** ./~/react/lib/ReactEmptyComponentRegistry.js ***!
   \****************************************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2014-2015, Facebook, Inc.
@@ -5221,12 +5314,12 @@
 	
 	module.exports = ReactEmptyComponentRegistry;
 
-/***/ },
+/***/ }),
 /* 45 */
 /*!*********************************************!*\
   !*** ./~/react/lib/ReactInstanceHandles.js ***!
   \*********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -5530,14 +5623,14 @@
 	};
 	
 	module.exports = ReactInstanceHandles;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 46 */
 /*!***************************************!*\
   !*** ./~/react/lib/ReactRootIndex.js ***!
   \***************************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -5569,12 +5662,12 @@
 	
 	module.exports = ReactRootIndex;
 
-/***/ },
+/***/ }),
 /* 47 */
 /*!*****************************************!*\
   !*** ./~/react/lib/ReactInstanceMap.js ***!
   \*****************************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -5624,12 +5717,12 @@
 	
 	module.exports = ReactInstanceMap;
 
-/***/ },
+/***/ }),
 /* 48 */
 /*!********************************************!*\
   !*** ./~/react/lib/ReactMarkupChecksum.js ***!
   \********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -5677,12 +5770,12 @@
 	
 	module.exports = ReactMarkupChecksum;
 
-/***/ },
+/***/ }),
 /* 49 */
 /*!********************************!*\
   !*** ./~/react/lib/adler32.js ***!
   \********************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -5727,12 +5820,12 @@
 	
 	module.exports = adler32;
 
-/***/ },
+/***/ }),
 /* 50 */
 /*!****************************************!*\
   !*** ./~/react/lib/ReactReconciler.js ***!
   \****************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -5842,12 +5935,12 @@
 	
 	module.exports = ReactReconciler;
 
-/***/ },
+/***/ }),
 /* 51 */
 /*!*********************************!*\
   !*** ./~/react/lib/ReactRef.js ***!
   \*********************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -5928,12 +6021,12 @@
 	
 	module.exports = ReactRef;
 
-/***/ },
+/***/ }),
 /* 52 */
 /*!***********************************!*\
   !*** ./~/react/lib/ReactOwner.js ***!
   \***********************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -6026,14 +6119,14 @@
 	};
 	
 	module.exports = ReactOwner;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 53 */
 /*!*****************************************!*\
   !*** ./~/react/lib/ReactUpdateQueue.js ***!
   \*****************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2015, Facebook, Inc.
@@ -6292,14 +6385,14 @@
 	};
 	
 	module.exports = ReactUpdateQueue;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 54 */
 /*!*************************************!*\
   !*** ./~/react/lib/ReactUpdates.js ***!
   \*************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -6524,14 +6617,14 @@
 	};
 	
 	module.exports = ReactUpdates;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 55 */
 /*!**************************************!*\
   !*** ./~/react/lib/CallbackQueue.js ***!
   \**************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -6626,14 +6719,14 @@
 	PooledClass.addPoolingTo(CallbackQueue);
 	
 	module.exports = CallbackQueue;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 56 */
 /*!************************************!*\
   !*** ./~/react/lib/PooledClass.js ***!
   \************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -6754,14 +6847,14 @@
 	};
 	
 	module.exports = PooledClass;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 57 */
 /*!************************************!*\
   !*** ./~/react/lib/Transaction.js ***!
   \************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -6994,14 +7087,14 @@
 	};
 	
 	module.exports = Transaction;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 58 */
 /*!***********************************!*\
   !*** ./~/fbjs/lib/emptyObject.js ***!
   \***********************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -7023,14 +7116,14 @@
 	}
 	
 	module.exports = emptyObject;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 59 */
 /*!************************************!*\
   !*** ./~/fbjs/lib/containsNode.js ***!
   \************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -7088,12 +7181,12 @@
 	
 	module.exports = containsNode;
 
-/***/ },
+/***/ }),
 /* 60 */
 /*!**********************************!*\
   !*** ./~/fbjs/lib/isTextNode.js ***!
   \**********************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -7121,12 +7214,12 @@
 	
 	module.exports = isTextNode;
 
-/***/ },
+/***/ }),
 /* 61 */
 /*!******************************!*\
   !*** ./~/fbjs/lib/isNode.js ***!
   \******************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -7152,12 +7245,12 @@
 	
 	module.exports = isNode;
 
-/***/ },
+/***/ }),
 /* 62 */
 /*!**************************************************!*\
   !*** ./~/react/lib/instantiateReactComponent.js ***!
   \**************************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -7271,14 +7364,14 @@
 	}
 	
 	module.exports = instantiateReactComponent;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 63 */
 /*!************************************************!*\
   !*** ./~/react/lib/ReactCompositeComponent.js ***!
   \************************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -7657,7 +7750,7 @@
 	          // This is intentionally an invariant that gets caught. It's the same
 	          // behavior as without this statement except with a better message.
 	          !(typeof propTypes[propName] === 'function') ? process.env.NODE_ENV !== 'production' ? invariant(false, '%s: %s type `%s` is invalid; it must be a function, usually ' + 'from React.PropTypes.', componentName || 'React class', ReactPropTypeLocationNames[location], propName) : invariant(false) : undefined;
-	          error = propTypes[propName](props, propName, componentName, location);
+	          error = propTypes[propName](props, propName, componentName, location, null, 'SECRET_DO_NOT_PASS_THIS_OR_YOU_WILL_BE_FIRED');
 	        } catch (ex) {
 	          error = ex;
 	        }
@@ -7974,14 +8067,14 @@
 	};
 	
 	module.exports = ReactCompositeComponent;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 64 */
 /*!**************************************************!*\
   !*** ./~/react/lib/ReactComponentEnvironment.js ***!
   \**************************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2014-2015, Facebook, Inc.
@@ -8034,14 +8127,14 @@
 	};
 	
 	module.exports = ReactComponentEnvironment;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 65 */
 /*!***********************************************!*\
   !*** ./~/react/lib/ReactPropTypeLocations.js ***!
   \***********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -8066,12 +8159,12 @@
 	
 	module.exports = ReactPropTypeLocations;
 
-/***/ },
+/***/ }),
 /* 66 */
 /*!***************************************************!*\
   !*** ./~/react/lib/ReactPropTypeLocationNames.js ***!
   \***************************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -8097,14 +8190,14 @@
 	}
 	
 	module.exports = ReactPropTypeLocationNames;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 67 */
 /*!***************************************************!*\
   !*** ./~/react/lib/shouldUpdateReactComponent.js ***!
   \***************************************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -8150,12 +8243,12 @@
 	
 	module.exports = shouldUpdateReactComponent;
 
-/***/ },
+/***/ }),
 /* 68 */
 /*!********************************************!*\
   !*** ./~/react/lib/ReactEmptyComponent.js ***!
   \********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2014-2015, Facebook, Inc.
@@ -8184,6 +8277,10 @@
 	  }
 	};
 	
+	function registerNullComponentID() {
+	  ReactEmptyComponentRegistry.registerNullComponentID(this._rootNodeID);
+	}
+	
 	var ReactEmptyComponent = function (instantiate) {
 	  this._currentElement = null;
 	  this._rootNodeID = null;
@@ -8192,7 +8289,7 @@
 	assign(ReactEmptyComponent.prototype, {
 	  construct: function (element) {},
 	  mountComponent: function (rootID, transaction, context) {
-	    ReactEmptyComponentRegistry.registerNullComponentID(rootID);
+	    transaction.getReactMountReady().enqueue(registerNullComponentID, this);
 	    this._rootNodeID = rootID;
 	    return ReactReconciler.mountComponent(this._renderedComponent, rootID, transaction, context);
 	  },
@@ -8209,12 +8306,12 @@
 	
 	module.exports = ReactEmptyComponent;
 
-/***/ },
+/***/ }),
 /* 69 */
 /*!*********************************************!*\
   !*** ./~/react/lib/ReactNativeComponent.js ***!
   \*********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2014-2015, Facebook, Inc.
@@ -8310,14 +8407,14 @@
 	};
 	
 	module.exports = ReactNativeComponent;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 70 */
 /*!*******************************************!*\
   !*** ./~/react/lib/validateDOMNesting.js ***!
   \*******************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2015, Facebook, Inc.
@@ -8682,14 +8779,14 @@
 	}
 	
 	module.exports = validateDOMNesting;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 71 */
 /*!**********************************************!*\
   !*** ./~/react/lib/ReactDefaultInjection.js ***!
   \**********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -8788,14 +8885,14 @@
 	module.exports = {
 	  inject: inject
 	};
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 72 */
 /*!***********************************************!*\
   !*** ./~/react/lib/BeforeInputEventPlugin.js ***!
   \***********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015 Facebook, Inc.
@@ -9203,12 +9300,12 @@
 	
 	module.exports = BeforeInputEventPlugin;
 
-/***/ },
+/***/ }),
 /* 73 */
 /*!*****************************************!*\
   !*** ./~/react/lib/EventPropagators.js ***!
   \*****************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -9345,14 +9442,14 @@
 	};
 	
 	module.exports = EventPropagators;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 74 */
 /*!*************************************************!*\
   !*** ./~/react/lib/FallbackCompositionState.js ***!
   \*************************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -9450,12 +9547,12 @@
 	
 	module.exports = FallbackCompositionState;
 
-/***/ },
+/***/ }),
 /* 75 */
 /*!***********************************************!*\
   !*** ./~/react/lib/getTextContentAccessor.js ***!
   \***********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -9491,12 +9588,12 @@
 	
 	module.exports = getTextContentAccessor;
 
-/***/ },
+/***/ }),
 /* 76 */
 /*!**************************************************!*\
   !*** ./~/react/lib/SyntheticCompositionEvent.js ***!
   \**************************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -9536,12 +9633,12 @@
 	
 	module.exports = SyntheticCompositionEvent;
 
-/***/ },
+/***/ }),
 /* 77 */
 /*!***************************************!*\
   !*** ./~/react/lib/SyntheticEvent.js ***!
   \***************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -9723,14 +9820,14 @@
 	PooledClass.addPoolingTo(SyntheticEvent, PooledClass.fourArgumentPooler);
 	
 	module.exports = SyntheticEvent;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 78 */
 /*!********************************************!*\
   !*** ./~/react/lib/SyntheticInputEvent.js ***!
   \********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -9771,12 +9868,12 @@
 	
 	module.exports = SyntheticInputEvent;
 
-/***/ },
+/***/ }),
 /* 79 */
 /*!*****************************!*\
   !*** ./~/fbjs/lib/keyOf.js ***!
   \*****************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -9814,12 +9911,12 @@
 	
 	module.exports = keyOf;
 
-/***/ },
+/***/ }),
 /* 80 */
 /*!******************************************!*\
   !*** ./~/react/lib/ChangeEventPlugin.js ***!
   \******************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -10143,12 +10240,12 @@
 	
 	module.exports = ChangeEventPlugin;
 
-/***/ },
+/***/ }),
 /* 81 */
 /*!***************************************!*\
   !*** ./~/react/lib/getEventTarget.js ***!
   \***************************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -10180,12 +10277,12 @@
 	
 	module.exports = getEventTarget;
 
-/***/ },
+/***/ }),
 /* 82 */
 /*!*******************************************!*\
   !*** ./~/react/lib/isTextInputElement.js ***!
   \*******************************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -10228,12 +10325,12 @@
 	
 	module.exports = isTextInputElement;
 
-/***/ },
+/***/ }),
 /* 83 */
 /*!*********************************************!*\
   !*** ./~/react/lib/ClientReactRootIndex.js ***!
   \*********************************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -10259,12 +10356,12 @@
 	
 	module.exports = ClientReactRootIndex;
 
-/***/ },
+/***/ }),
 /* 84 */
 /*!************************************************!*\
   !*** ./~/react/lib/DefaultEventPluginOrder.js ***!
   \************************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -10294,12 +10391,12 @@
 	
 	module.exports = DefaultEventPluginOrder;
 
-/***/ },
+/***/ }),
 /* 85 */
 /*!**********************************************!*\
   !*** ./~/react/lib/EnterLeaveEventPlugin.js ***!
   \**********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -10426,12 +10523,12 @@
 	
 	module.exports = EnterLeaveEventPlugin;
 
-/***/ },
+/***/ }),
 /* 86 */
 /*!********************************************!*\
   !*** ./~/react/lib/SyntheticMouseEvent.js ***!
   \********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -10507,12 +10604,12 @@
 	
 	module.exports = SyntheticMouseEvent;
 
-/***/ },
+/***/ }),
 /* 87 */
 /*!*****************************************!*\
   !*** ./~/react/lib/SyntheticUIEvent.js ***!
   \*****************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -10575,12 +10672,12 @@
 	
 	module.exports = SyntheticUIEvent;
 
-/***/ },
+/***/ }),
 /* 88 */
 /*!**********************************************!*\
   !*** ./~/react/lib/getEventModifierState.js ***!
   \**********************************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -10627,12 +10724,12 @@
 	
 	module.exports = getEventModifierState;
 
-/***/ },
+/***/ }),
 /* 89 */
 /*!**********************************************!*\
   !*** ./~/react/lib/HTMLDOMPropertyConfig.js ***!
   \**********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -10865,12 +10962,12 @@
 	
 	module.exports = HTMLDOMPropertyConfig;
 
-/***/ },
+/***/ }),
 /* 90 */
 /*!***************************************************!*\
   !*** ./~/react/lib/ReactBrowserComponentMixin.js ***!
   \***************************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -10908,14 +11005,14 @@
 	};
 	
 	module.exports = ReactBrowserComponentMixin;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 91 */
 /*!************************************!*\
   !*** ./~/react/lib/findDOMNode.js ***!
   \************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -10966,14 +11063,14 @@
 	}
 	
 	module.exports = findDOMNode;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 92 */
 /*!*****************************************************!*\
   !*** ./~/react/lib/ReactDefaultBatchingStrategy.js ***!
   \*****************************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -11043,12 +11140,12 @@
 	
 	module.exports = ReactDefaultBatchingStrategy;
 
-/***/ },
+/***/ }),
 /* 93 */
 /*!******************************************!*\
   !*** ./~/react/lib/ReactDOMComponent.js ***!
   \******************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -12012,14 +12109,14 @@
 	assign(ReactDOMComponent.prototype, ReactDOMComponent.Mixin, ReactMultiChild.Mixin);
 	
 	module.exports = ReactDOMComponent;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 94 */
 /*!***************************************!*\
   !*** ./~/react/lib/AutoFocusUtils.js ***!
   \***************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -12058,12 +12155,12 @@
 	
 	module.exports = AutoFocusUtils;
 
-/***/ },
+/***/ }),
 /* 95 */
 /*!*********************************!*\
   !*** ./~/fbjs/lib/focusNode.js ***!
   \*********************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -12092,12 +12189,12 @@
 	
 	module.exports = focusNode;
 
-/***/ },
+/***/ }),
 /* 96 */
 /*!**********************************************!*\
   !*** ./~/react/lib/CSSPropertyOperations.js ***!
   \**********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -12274,14 +12371,14 @@
 	});
 	
 	module.exports = CSSPropertyOperations;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 97 */
 /*!************************************!*\
   !*** ./~/react/lib/CSSProperty.js ***!
   \************************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -12423,12 +12520,12 @@
 	
 	module.exports = CSSProperty;
 
-/***/ },
+/***/ }),
 /* 98 */
 /*!*****************************************!*\
   !*** ./~/fbjs/lib/camelizeStyleName.js ***!
   \*****************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -12471,12 +12568,12 @@
 	
 	module.exports = camelizeStyleName;
 
-/***/ },
+/***/ }),
 /* 99 */
 /*!********************************!*\
   !*** ./~/fbjs/lib/camelize.js ***!
   \********************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -12511,12 +12608,12 @@
 	
 	module.exports = camelize;
 
-/***/ },
+/***/ }),
 /* 100 */
 /*!********************************************!*\
   !*** ./~/react/lib/dangerousStyleValue.js ***!
   \********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -12574,12 +12671,12 @@
 	
 	module.exports = dangerousStyleValue;
 
-/***/ },
+/***/ }),
 /* 101 */
 /*!******************************************!*\
   !*** ./~/fbjs/lib/hyphenateStyleName.js ***!
   \******************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -12621,12 +12718,12 @@
 	
 	module.exports = hyphenateStyleName;
 
-/***/ },
+/***/ }),
 /* 102 */
 /*!*********************************!*\
   !*** ./~/fbjs/lib/hyphenate.js ***!
   \*********************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -12662,12 +12759,12 @@
 	
 	module.exports = hyphenate;
 
-/***/ },
+/***/ }),
 /* 103 */
 /*!*****************************************!*\
   !*** ./~/fbjs/lib/memoizeStringOnly.js ***!
   \*****************************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -12701,12 +12798,12 @@
 	
 	module.exports = memoizeStringOnly;
 
-/***/ },
+/***/ }),
 /* 104 */
 /*!***************************************!*\
   !*** ./~/react/lib/ReactDOMButton.js ***!
   \***************************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -12759,12 +12856,12 @@
 	
 	module.exports = ReactDOMButton;
 
-/***/ },
+/***/ }),
 /* 105 */
 /*!**************************************!*\
   !*** ./~/react/lib/ReactDOMInput.js ***!
   \**************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -12919,14 +13016,14 @@
 	}
 	
 	module.exports = ReactDOMInput;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 106 */
 /*!*****************************************!*\
   !*** ./~/react/lib/LinkedValueUtils.js ***!
   \*****************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -13006,7 +13103,7 @@
 	  checkPropTypes: function (tagName, props, owner) {
 	    for (var propName in propTypes) {
 	      if (propTypes.hasOwnProperty(propName)) {
-	        var error = propTypes[propName](props, propName, tagName, ReactPropTypeLocations.prop);
+	        var error = propTypes[propName](props, propName, tagName, ReactPropTypeLocations.prop, null, 'SECRET_DO_NOT_PASS_THIS_OR_YOU_WILL_BE_FIRED');
 	      }
 	      if (error instanceof Error && !(error.message in loggedTypeFailures)) {
 	        // Only monitor this failure once because there tends to be a lot of the
@@ -13062,14 +13159,14 @@
 	};
 	
 	module.exports = LinkedValueUtils;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 107 */
 /*!***************************************!*\
   !*** ./~/react/lib/ReactPropTypes.js ***!
   \***************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -13210,7 +13307,7 @@
 	      return new Error('Invalid ' + locationName + ' `' + propFullName + '` of type ' + ('`' + propType + '` supplied to `' + componentName + '`, expected an array.'));
 	    }
 	    for (var i = 0; i < propValue.length; i++) {
-	      var error = typeChecker(propValue, i, componentName, location, propFullName + '[' + i + ']');
+	      var error = typeChecker(propValue, i, componentName, location, propFullName + '[' + i + ']', 'SECRET_DO_NOT_PASS_THIS_OR_YOU_WILL_BE_FIRED');
 	      if (error instanceof Error) {
 	        return error;
 	      }
@@ -13276,7 +13373,7 @@
 	    }
 	    for (var key in propValue) {
 	      if (propValue.hasOwnProperty(key)) {
-	        var error = typeChecker(propValue, key, componentName, location, propFullName + '.' + key);
+	        var error = typeChecker(propValue, key, componentName, location, propFullName + '.' + key, 'SECRET_DO_NOT_PASS_THIS_OR_YOU_WILL_BE_FIRED');
 	        if (error instanceof Error) {
 	          return error;
 	        }
@@ -13297,7 +13394,7 @@
 	  function validate(props, propName, componentName, location, propFullName) {
 	    for (var i = 0; i < arrayOfTypeCheckers.length; i++) {
 	      var checker = arrayOfTypeCheckers[i];
-	      if (checker(props, propName, componentName, location, propFullName) == null) {
+	      if (checker(props, propName, componentName, location, propFullName, 'SECRET_DO_NOT_PASS_THIS_OR_YOU_WILL_BE_FIRED') == null) {
 	        return null;
 	      }
 	    }
@@ -13332,7 +13429,7 @@
 	      if (!checker) {
 	        continue;
 	      }
-	      var error = checker(propValue, key, componentName, location, propFullName + '.' + key);
+	      var error = checker(propValue, key, componentName, location, propFullName + '.' + key, 'SECRET_DO_NOT_PASS_THIS_OR_YOU_WILL_BE_FIRED');
 	      if (error) {
 	        return error;
 	      }
@@ -13428,12 +13525,12 @@
 	
 	module.exports = ReactPropTypes;
 
-/***/ },
+/***/ }),
 /* 108 */
 /*!**************************************!*\
   !*** ./~/react/lib/getIteratorFn.js ***!
   \**************************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -13476,12 +13573,12 @@
 	
 	module.exports = getIteratorFn;
 
-/***/ },
+/***/ }),
 /* 109 */
 /*!***************************************!*\
   !*** ./~/react/lib/ReactDOMOption.js ***!
   \***************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -13572,14 +13669,14 @@
 	};
 	
 	module.exports = ReactDOMOption;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 110 */
 /*!**************************************!*\
   !*** ./~/react/lib/ReactChildren.js ***!
   \**************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -13764,12 +13861,12 @@
 	
 	module.exports = ReactChildren;
 
-/***/ },
+/***/ }),
 /* 111 */
 /*!********************************************!*\
   !*** ./~/react/lib/traverseAllChildren.js ***!
   \********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -13960,14 +14057,14 @@
 	}
 	
 	module.exports = traverseAllChildren;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 112 */
 /*!***************************************!*\
   !*** ./~/react/lib/ReactDOMSelect.js ***!
   \***************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -14157,14 +14254,14 @@
 	}
 	
 	module.exports = ReactDOMSelect;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 113 */
 /*!*****************************************!*\
   !*** ./~/react/lib/ReactDOMTextarea.js ***!
   \*****************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -14279,14 +14376,14 @@
 	}
 	
 	module.exports = ReactDOMTextarea;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 114 */
 /*!****************************************!*\
   !*** ./~/react/lib/ReactMultiChild.js ***!
   \****************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -14784,14 +14881,14 @@
 	};
 	
 	module.exports = ReactMultiChild;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 115 */
 /*!*********************************************!*\
   !*** ./~/react/lib/ReactChildReconciler.js ***!
   \*********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2014-2015, Facebook, Inc.
@@ -14915,14 +15012,14 @@
 	};
 	
 	module.exports = ReactChildReconciler;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 116 */
 /*!****************************************!*\
   !*** ./~/react/lib/flattenChildren.js ***!
   \****************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -14972,14 +15069,14 @@
 	}
 	
 	module.exports = flattenChildren;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 117 */
 /*!************************************!*\
   !*** ./~/fbjs/lib/shallowEqual.js ***!
   \************************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -15032,12 +15129,12 @@
 	
 	module.exports = shallowEqual;
 
-/***/ },
+/***/ }),
 /* 118 */
 /*!*******************************************!*\
   !*** ./~/react/lib/ReactEventListener.js ***!
   \*******************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -15251,12 +15348,12 @@
 	
 	module.exports = ReactEventListener;
 
-/***/ },
+/***/ }),
 /* 119 */
 /*!*************************************!*\
   !*** ./~/fbjs/lib/EventListener.js ***!
   \*************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -15342,14 +15439,14 @@
 	};
 	
 	module.exports = EventListener;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 120 */
 /*!**************************************************!*\
   !*** ./~/fbjs/lib/getUnboundedScrollPosition.js ***!
   \**************************************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -15390,12 +15487,12 @@
 	
 	module.exports = getUnboundedScrollPosition;
 
-/***/ },
+/***/ }),
 /* 121 */
 /*!***************************************!*\
   !*** ./~/react/lib/ReactInjection.js ***!
   \***************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -15436,12 +15533,12 @@
 	
 	module.exports = ReactInjection;
 
-/***/ },
+/***/ }),
 /* 122 */
 /*!***********************************!*\
   !*** ./~/react/lib/ReactClass.js ***!
   \***********************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -16214,14 +16311,14 @@
 	};
 	
 	module.exports = ReactClass;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 123 */
 /*!***************************************!*\
   !*** ./~/react/lib/ReactComponent.js ***!
   \***************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -16345,14 +16442,14 @@
 	}
 	
 	module.exports = ReactComponent;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 124 */
 /*!*********************************************!*\
   !*** ./~/react/lib/ReactNoopUpdateQueue.js ***!
   \*********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2015, Facebook, Inc.
@@ -16472,14 +16569,14 @@
 	};
 	
 	module.exports = ReactNoopUpdateQueue;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 125 */
 /*!**************************************************!*\
   !*** ./~/react/lib/ReactReconcileTransaction.js ***!
   \**************************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -16633,12 +16730,12 @@
 	
 	module.exports = ReactReconcileTransaction;
 
-/***/ },
+/***/ }),
 /* 126 */
 /*!********************************************!*\
   !*** ./~/react/lib/ReactInputSelection.js ***!
   \********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -16765,12 +16862,12 @@
 	
 	module.exports = ReactInputSelection;
 
-/***/ },
+/***/ }),
 /* 127 */
 /*!******************************************!*\
   !*** ./~/react/lib/ReactDOMSelection.js ***!
   \******************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -16985,12 +17082,12 @@
 	
 	module.exports = ReactDOMSelection;
 
-/***/ },
+/***/ }),
 /* 128 */
 /*!**************************************************!*\
   !*** ./~/react/lib/getNodeForCharacterOffset.js ***!
   \**************************************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -17066,12 +17163,12 @@
 	
 	module.exports = getNodeForCharacterOffset;
 
-/***/ },
+/***/ }),
 /* 129 */
 /*!****************************************!*\
   !*** ./~/fbjs/lib/getActiveElement.js ***!
   \****************************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -17109,12 +17206,12 @@
 	
 	module.exports = getActiveElement;
 
-/***/ },
+/***/ }),
 /* 130 */
 /*!******************************************!*\
   !*** ./~/react/lib/SelectEventPlugin.js ***!
   \******************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -17318,12 +17415,12 @@
 	
 	module.exports = SelectEventPlugin;
 
-/***/ },
+/***/ }),
 /* 131 */
 /*!*********************************************!*\
   !*** ./~/react/lib/ServerReactRootIndex.js ***!
   \*********************************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -17355,12 +17452,12 @@
 	
 	module.exports = ServerReactRootIndex;
 
-/***/ },
+/***/ }),
 /* 132 */
 /*!******************************************!*\
   !*** ./~/react/lib/SimpleEventPlugin.js ***!
   \******************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -17949,14 +18046,14 @@
 	};
 	
 	module.exports = SimpleEventPlugin;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 133 */
 /*!************************************************!*\
   !*** ./~/react/lib/SyntheticClipboardEvent.js ***!
   \************************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -17998,12 +18095,12 @@
 	
 	module.exports = SyntheticClipboardEvent;
 
-/***/ },
+/***/ }),
 /* 134 */
 /*!********************************************!*\
   !*** ./~/react/lib/SyntheticFocusEvent.js ***!
   \********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -18043,12 +18140,12 @@
 	
 	module.exports = SyntheticFocusEvent;
 
-/***/ },
+/***/ }),
 /* 135 */
 /*!***********************************************!*\
   !*** ./~/react/lib/SyntheticKeyboardEvent.js ***!
   \***********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -18136,12 +18233,12 @@
 	
 	module.exports = SyntheticKeyboardEvent;
 
-/***/ },
+/***/ }),
 /* 136 */
 /*!*****************************************!*\
   !*** ./~/react/lib/getEventCharCode.js ***!
   \*****************************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -18194,12 +18291,12 @@
 	
 	module.exports = getEventCharCode;
 
-/***/ },
+/***/ }),
 /* 137 */
 /*!************************************!*\
   !*** ./~/react/lib/getEventKey.js ***!
   \************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -18305,12 +18402,12 @@
 	
 	module.exports = getEventKey;
 
-/***/ },
+/***/ }),
 /* 138 */
 /*!*******************************************!*\
   !*** ./~/react/lib/SyntheticDragEvent.js ***!
   \*******************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -18350,12 +18447,12 @@
 	
 	module.exports = SyntheticDragEvent;
 
-/***/ },
+/***/ }),
 /* 139 */
 /*!********************************************!*\
   !*** ./~/react/lib/SyntheticTouchEvent.js ***!
   \********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -18404,12 +18501,12 @@
 	
 	module.exports = SyntheticTouchEvent;
 
-/***/ },
+/***/ }),
 /* 140 */
 /*!********************************************!*\
   !*** ./~/react/lib/SyntheticWheelEvent.js ***!
   \********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -18467,12 +18564,12 @@
 	
 	module.exports = SyntheticWheelEvent;
 
-/***/ },
+/***/ }),
 /* 141 */
 /*!*********************************************!*\
   !*** ./~/react/lib/SVGDOMPropertyConfig.js ***!
   \*********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -18602,12 +18699,12 @@
 	
 	module.exports = SVGDOMPropertyConfig;
 
-/***/ },
+/***/ }),
 /* 142 */
 /*!*****************************************!*\
   !*** ./~/react/lib/ReactDefaultPerf.js ***!
   \*****************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -18847,12 +18944,12 @@
 	
 	module.exports = ReactDefaultPerf;
 
-/***/ },
+/***/ }),
 /* 143 */
 /*!*************************************************!*\
   !*** ./~/react/lib/ReactDefaultPerfAnalysis.js ***!
   \*************************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -19056,12 +19153,12 @@
 	
 	module.exports = ReactDefaultPerfAnalysis;
 
-/***/ },
+/***/ }),
 /* 144 */
 /*!**************************************!*\
   !*** ./~/fbjs/lib/performanceNow.js ***!
   \**************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -19098,12 +19195,12 @@
 	
 	module.exports = performanceNow;
 
-/***/ },
+/***/ }),
 /* 145 */
 /*!***********************************!*\
   !*** ./~/fbjs/lib/performance.js ***!
   \***********************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -19129,12 +19226,12 @@
 	
 	module.exports = performance || {};
 
-/***/ },
+/***/ }),
 /* 146 */
 /*!*************************************!*\
   !*** ./~/react/lib/ReactVersion.js ***!
   \*************************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -19149,14 +19246,14 @@
 	
 	'use strict';
 	
-	module.exports = '0.14.7';
+	module.exports = '0.14.9';
 
-/***/ },
+/***/ }),
 /* 147 */
 /*!***************************************************!*\
   !*** ./~/react/lib/renderSubtreeIntoContainer.js ***!
   \***************************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -19175,12 +19272,12 @@
 	
 	module.exports = ReactMount.renderSubtreeIntoContainer;
 
-/***/ },
+/***/ }),
 /* 148 */
 /*!***************************************!*\
   !*** ./~/react/lib/ReactDOMServer.js ***!
   \***************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -19209,12 +19306,12 @@
 	
 	module.exports = ReactDOMServer;
 
-/***/ },
+/***/ }),
 /* 149 */
 /*!*********************************************!*\
   !*** ./~/react/lib/ReactServerRendering.js ***!
   \*********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -19299,14 +19396,14 @@
 	  renderToString: renderToString,
 	  renderToStaticMarkup: renderToStaticMarkup
 	};
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 150 */
 /*!****************************************************!*\
   !*** ./~/react/lib/ReactServerBatchingStrategy.js ***!
   \****************************************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2014-2015, Facebook, Inc.
@@ -19332,12 +19429,12 @@
 	
 	module.exports = ReactServerBatchingStrategy;
 
-/***/ },
+/***/ }),
 /* 151 */
 /*!********************************************************!*\
   !*** ./~/react/lib/ReactServerRenderingTransaction.js ***!
   \********************************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Copyright 2014-2015, Facebook, Inc.
@@ -19427,12 +19524,12 @@
 	
 	module.exports = ReactServerRenderingTransaction;
 
-/***/ },
+/***/ }),
 /* 152 */
 /*!****************************************!*\
   !*** ./~/react/lib/ReactIsomorphic.js ***!
   \****************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -19508,14 +19605,14 @@
 	};
 	
 	module.exports = React;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 153 */
 /*!******************************************!*\
   !*** ./~/react/lib/ReactDOMFactories.js ***!
   \******************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -19694,14 +19791,14 @@
 	}, createDOMFactory);
 	
 	module.exports = ReactDOMFactories;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 154 */
 /*!**********************************************!*\
   !*** ./~/react/lib/ReactElementValidator.js ***!
   \**********************************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2014-2015, Facebook, Inc.
@@ -19880,7 +19977,7 @@
 	        // This is intentionally an invariant that gets caught. It's the same
 	        // behavior as without this statement except with a better message.
 	        !(typeof propTypes[propName] === 'function') ? process.env.NODE_ENV !== 'production' ? invariant(false, '%s: %s type `%s` is invalid; it must be a function, usually from ' + 'React.PropTypes.', componentName || 'React class', ReactPropTypeLocationNames[location], propName) : invariant(false) : undefined;
-	        error = propTypes[propName](props, propName, componentName, location);
+	        error = propTypes[propName](props, propName, componentName, location, null, 'SECRET_DO_NOT_PASS_THIS_OR_YOU_WILL_BE_FIRED');
 	      } catch (ex) {
 	        error = ex;
 	      }
@@ -19984,14 +20081,14 @@
 	};
 	
 	module.exports = ReactElementValidator;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 155 */
 /*!*********************************!*\
   !*** ./~/fbjs/lib/mapObject.js ***!
   \*********************************/
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -20045,12 +20142,12 @@
 	
 	module.exports = mapObject;
 
-/***/ },
+/***/ }),
 /* 156 */
 /*!**********************************!*\
   !*** ./~/react/lib/onlyChild.js ***!
   \**********************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -20085,14 +20182,14 @@
 	}
 	
 	module.exports = onlyChild;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 157 */
 /*!***********************************!*\
   !*** ./~/react/lib/deprecated.js ***!
   \***********************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
@@ -20142,26 +20239,26 @@
 	}
 	
 	module.exports = deprecated;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./~/process/browser.js */ 4)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../process/browser.js */ 4)))
 
-/***/ },
+/***/ }),
 /* 158 */
 /*!******************************!*\
   !*** ./~/react-dom/index.js ***!
   \******************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	module.exports = __webpack_require__(/*! react/lib/ReactDOM */ 3);
 
 
-/***/ },
+/***/ }),
 /* 159 */
 /*!**********************************!*\
   !*** ./app/AwesomeComponent.jsx ***!
   \**********************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
@@ -20189,7 +20286,7 @@
 	    function AwesomeComponent(props) {
 	        _classCallCheck(this, AwesomeComponent);
 	
-	        var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(AwesomeComponent).call(this, props));
+	        var _this = _possibleConstructorReturn(this, (AwesomeComponent.__proto__ || Object.getPrototypeOf(AwesomeComponent)).call(this, props));
 	
 	        _this.state = { likesCount: 0 };
 	        _this.onLike = _this.onLike.bind(_this);
@@ -20232,12 +20329,12 @@
 	
 	exports.default = AwesomeComponent;
 
-/***/ },
+/***/ }),
 /* 160 */
 /*!**********************!*\
   !*** ./app/Root.jsx ***!
   \**********************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
@@ -20339,7 +20436,7 @@
 	                });
 	            });
 	        });
-	        console.log(data);
+	        // console.log(data);
 	        console.log("------------------------");
 	        return data;
 	    },
@@ -20407,11 +20504,11 @@
 	            fontFamily: "\'Anonymous Pro\' !important",
 	            fontStyle: "normal",
 	            fontWeight: 700,
-	            height: "91%",
+	            height: "100%",
 	            width: "100%",
 	            position: "absolute",
 	            zIndex: 0,
-	            top: "9%"
+	            top: "0%"
 	        };
 	
 	        var rootStyle = {
@@ -20422,7 +20519,7 @@
 	        console.log("rendering with trend index: " + trendIndex);
 	        var cells = [];
 	        var data = clone(this.state.data);
-	        console.log("data is", data);
+	        // console.log("data is", data);
 	
 	        for (var key in data) {
 	            if (data.hasOwnProperty(key)) {
@@ -20434,7 +20531,7 @@
 	                    item = {
 	                        text: val.text,
 	                        col: val.col,
-	                        row: 6,
+	                        row: 10,
 	                        scenes: []
 	                    };
 	                }
@@ -20455,8 +20552,6 @@
 	        return _react2.default.createElement(
 	            'div',
 	            { style: rootStyle },
-	            _react2.default.createElement(_DateTitleBox2.default, { batchIndex: trendIndex, setIndex: this.setIndex }),
-	            _react2.default.createElement(_TitleRow2.default, null),
 	            _react2.default.createElement(
 	                'div',
 	                { style: divStyle },
@@ -20468,12 +20563,12 @@
 	
 	exports.default = Root;
 
-/***/ },
+/***/ }),
 /* 161 */
 /*!**********************!*\
   !*** ./app/Cell.jsx ***!
   \**********************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	"use strict";
 	
@@ -20519,7 +20614,7 @@
 	    position: "absolute",
 	    left: 0, top: 0,
 	    height: "100%", width: "100%",
-	    backgroundColor: "rgba(0,0,0,0.4)",
+	    backgroundColor: "rgba(0,0,0,0)",
 	    transition: "all 1s ease"
 	};
 	
@@ -20608,8 +20703,7 @@
 	            overflow: "hidden",
 	            //borderLeft: "20px solid rgb(0,0,0)",
 	            backgroundColor: "rgb(0,0,0)",
-	            boxSizing: "border-box",
-	            border: "20px solid rgb(0,0,0)"
+	            boxSizing: "border-box"
 	        };
 	
 	        var videoElement = _react2.default.createElement("div", null);
@@ -20623,6 +20717,7 @@
 	        if (scene) {
 	            startAt = Math.max(scene.first_timestamp, scene.start);
 	            thumbSrc = getThumbnailUrl(scene.media_url, startAt / 1000, 3);
+	            console.log('thumbSrc is ' + thumbSrc);
 	            if (this.props.isPlaying) {
 	                var videoUrl = scene.media_url + "#t=" + startAt / 1000 + "," + scene.end / 1000;
 	                videoElement = _react2.default.createElement("video", { style: videoStyle, src: videoUrl, autoPlay: true, loop: true, onPlaying: this.onPlaying,
@@ -20640,11 +20735,6 @@
 	            { style: divStyle, onClick: this.click },
 	            _react2.default.createElement("img", { style: imgStyle, src: thumbSrc }),
 	            _react2.default.createElement("div", { style: imgShader }),
-	            _react2.default.createElement(
-	                "h1",
-	                { style: h1Style },
-	                item.text.toUpperCase()
-	            ),
 	            _react2.default.createElement("div", { style: {
 	                    position: "absolute",
 	                    left: 0, top: 0,
@@ -20659,12 +20749,12 @@
 	
 	exports.default = Cell;
 
-/***/ },
+/***/ }),
 /* 162 */
 /*!**************************!*\
   !*** ./app/TitleRow.jsx ***!
   \**************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
@@ -20716,12 +20806,12 @@
 	
 	exports.default = TitleRow;
 
-/***/ },
+/***/ }),
 /* 163 */
 /*!***************************!*\
   !*** ./app/TitleCell.jsx ***!
   \***************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	"use strict";
 	
@@ -20755,12 +20845,12 @@
 	
 	exports.default = TitleCell;
 
-/***/ },
+/***/ }),
 /* 164 */
 /*!******************************!*\
   !*** ./app/DateTitleBox.jsx ***!
   \******************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
@@ -20842,7 +20932,7 @@
 	    function DateTitleBox(props) {
 	        _classCallCheck(this, DateTitleBox);
 	
-	        return _possibleConstructorReturn(this, Object.getPrototypeOf(DateTitleBox).call(this, props));
+	        return _possibleConstructorReturn(this, (DateTitleBox.__proto__ || Object.getPrototypeOf(DateTitleBox)).call(this, props));
 	    }
 	
 	    _createClass(DateTitleBox, [{
@@ -20917,29 +21007,33 @@
 	
 	exports.default = DateTitleBox;
 
-/***/ },
+/***/ }),
 /* 165 */
 /*!****************************!*\
   !*** ./~/swipejs/swipe.js ***!
   \****************************/
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
-	 * Swipe 2.0.6
+	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(global) {/*!
+	 * Swipe 2.2.10
 	 *
-	 * Brad Birdsall & Felix Liu
-	 * Copyright 2015, MIT License
+	 * Brad Birdsall
+	 * Copyright 2013, MIT License
 	 *
 	*/
 	
 	// if the module has no dependencies, the above pattern can be simplified to
+	// eslint-disable-next-line no-extra-semi
 	;(function (root, factory) {
+	  // eslint-disable-next-line no-undef
 	  if (true) {
 	    // AMD. Register as an anonymous module.
+	    // eslint-disable-next-line no-undef
 	    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_RESULT__ = function(){
-	      return (root.Swipe = factory());
+	      root.Swipe = factory();
+	      return root.Swipe;
 	    }.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-	  } else if (typeof exports === 'object') {
+	  } else if (typeof module === 'object' && module.exports) {
 	    // Node. Does not work with strict CommonJS, but
 	    // only CommonJS-like environments that support module.exports,
 	    // like Node.
@@ -20949,21 +21043,67 @@
 	    root.Swipe = factory();
 	  }
 	}(this, function () {
+	  // Establish the root object, `window` (`self`) in the browser, `global`
+	  // on the server, or `this` in some virtual machines. We use `self`
+	  // instead of `window` for `WebWorker` support.
+	  var root = typeof self == 'object' && self.self === self && self ||
+	             typeof global == 'object' && global.global === global && global ||
+	             this;
 	
-	  var root = this;
 	  var _document = root.document;
 	
 	  function Swipe(container, options) {
 	
-	    "use strict";
+	    'use strict';
+	
+	    options = options || {};
+	
+	    // setup initial vars
+	    var start = {};
+	    var delta = {};
+	    var isScrolling;
+	
+	    // setup auto slideshow
+	    var delay = options.auto || 0;
+	    var interval;
+	
+	    var disabled = false;
 	
 	    // utilities
-	    var noop = function() {}; // simple no operation function
-	    var offloadFn = function(fn) { setTimeout(fn || noop, 0); }; // offload a functions execution
+	    // simple no operation function
+	    var noop = function() {};
+	    // offload a functions execution
+	    var offloadFn = function(fn) { setTimeout(fn || noop, 0); };
+	    // Returns a function, that, as long as it continues to be invoked, will not
+	    // be triggered.
+	    var throttle = function (fn, threshhold) {
+	      threshhold = threshhold || 100;
+	      var timeout = null;
+	
+	      function cancel() {
+	        if (timeout) clearTimeout(timeout);
+	      }
+	
+	      function throttledFn() {
+	        var context = this;
+	        var args = arguments;
+	        cancel();
+	        timeout = setTimeout(function() {
+	          timeout = null;
+	          fn.apply(context, args);
+	        }, threshhold);
+	      }
+	
+	      // allow remove throttled timeout
+	      throttledFn.cancel = cancel;
+	
+	      return throttledFn;
+	    };
 	
 	    // check browser capabilities
 	    var browser = {
 	      addEventListener: !!root.addEventListener,
+	      // eslint-disable-next-line no-undef
 	      touch: ('ontouchstart' in root) || root.DocumentTouch && _document instanceof DocumentTouch,
 	      transitions: (function(temp) {
 	        var props = ['transitionProperty', 'WebkitTransition', 'MozTransition', 'OTransition', 'msTransition'];
@@ -20977,13 +21117,10 @@
 	    };
 	
 	    // quit if no root element
-	    if (!container) {
-	      return;
-	    }
+	    if (!container) return;
 	
 	    var element = container.children[0];
 	    var slides, slidePos, width, length;
-	    options = options || {};
 	    var index = parseInt(options.startSlide, 10) || 0;
 	    var speed = options.speed || 300;
 	    options.continuous = options.continuous !== undefined ? options.continuous : true;
@@ -20991,257 +21128,15 @@
 	    // AutoRestart option: auto restart slideshow after user's touch event
 	    options.autoRestart = options.autoRestart !== undefined ? options.autoRestart : false;
 	
-	    function setup() {
-	
-	      // cache slides
-	      slides = element.children;
-	      length = slides.length;
-	
-	      // set continuous to false if only one slide
-	      if (slides.length < 2) {
-	        options.continuous = false;
-	      }
-	
-	      //special case if two slides
-	      if (browser.transitions && options.continuous && slides.length < 3) {
-	        element.appendChild(slides[0].cloneNode(true));
-	        element.appendChild(element.children[1].cloneNode(true));
-	        slides = element.children;
-	      }
-	
-	      // create an array to store current positions of each slide
-	      slidePos = new Array(slides.length);
-	
-	      // determine width of each slide
-	      width = container.getBoundingClientRect().width || container.offsetWidth;
-	
-	      element.style.width = (slides.length * width * 2) + 'px';
-	
-	      // stack elements
-	      var pos = slides.length;
-	      while(pos--) {
-	
-	        var slide = slides[pos];
-	
-	        slide.style.width = width + 'px';
-	        slide.setAttribute('data-index', pos);
-	
-	        if (browser.transitions) {
-	          slide.style.left = (pos * -width) + 'px';
-	          move(pos, index > pos ? -width : (index < pos ? width : 0), 0);
-	        }
-	
-	      }
-	
-	      // reposition elements before and after index
-	      if (options.continuous && browser.transitions) {
-	        move(circle(index-1), -width, 0);
-	        move(circle(index+1), width, 0);
-	      }
-	
-	      if (!browser.transitions) {
-	        element.style.left = (index * -width) + 'px';
-	      }
-	
-	      container.style.visibility = 'visible';
-	
-	    }
-	
-	    function prev() {
-	
-	      if (options.continuous) {
-	        slide(index-1);
-	      }
-	      else if (index) {
-	        slide(index-1);
-	      }
-	
-	    }
-	
-	    function next() {
-	
-	      if (options.continuous) {
-	        slide(index+1);
-	      }
-	      else if (index < slides.length - 1) {
-	        slide(index+1);
-	      }
-	
-	    }
-	
-	    function circle(index) {
-	
-	      // a simple positive modulo using slides.length
-	      return (slides.length + (index % slides.length)) % slides.length;
-	
-	    }
-	
-	    function getPos() {
-	      // Fix for the clone issue in the event of 2 slides
-	      var currentIndex = index;
-	
-	      if (currentIndex >= length) {
-	        currentIndex = currentIndex - length;
-	      }
-	
-	      return currentIndex;
-	    }
-	
-	    function slide(to, slideSpeed) {
-	
-	      // do nothing if already on requested slide
-	      if (index === to) {
-	        return;
-	      }
-	
-	      if (browser.transitions) {
-	
-	        var direction = Math.abs(index-to) / (index-to); // 1: backward, -1: forward
-	
-	        // get the actual position of the slide
-	        if (options.continuous) {
-	          var natural_direction = direction;
-	          direction = -slidePos[circle(to)] / width;
-	
-	          // if going forward but to < index, use to = slides.length + to
-	          // if going backward but to > index, use to = -slides.length + to
-	          if (direction !== natural_direction) {
-	            to =  -direction * slides.length + to;
-	          }
-	
-	        }
-	
-	        var diff = Math.abs(index-to) - 1;
-	
-	        // move all the slides between index and to in the right direction
-	        while (diff--) {
-	          move( circle((to > index ? to : index) - diff - 1), width * direction, 0);
-	        }
-	
-	        to = circle(to);
-	
-	        move(index, width * direction, slideSpeed || speed);
-	        move(to, 0, slideSpeed || speed);
-	
-	        if (options.continuous) { // we need to get the next in place
-	          move(circle(to - direction), -(width * direction), 0);
-	        }
-	
-	      } else {
-	
-	        to = circle(to);
-	        animate(index * -width, to * -width, slideSpeed || speed);
-	        //no fallback for a circular continuous if the browser does not accept transitions
-	      }
-	
-	      index = to;
-	      offloadFn(options.callback && options.callback(getPos(), slides[index]));
-	    }
-	
-	    function move(index, dist, speed) {
-	
-	      translate(index, dist, speed);
-	      slidePos[index] = dist;
-	
-	    }
-	
-	    function translate(index, dist, speed) {
-	
-	      var slide = slides[index];
-	      var style = slide && slide.style;
-	
-	      if (!style) {
-	        return;
-	      }
-	
-	      style.webkitTransitionDuration =
-	      style.MozTransitionDuration =
-	      style.msTransitionDuration =
-	      style.OTransitionDuration =
-	      style.transitionDuration = speed + 'ms';
-	
-	      style.webkitTransform = 'translate(' + dist + 'px,0)' + 'translateZ(0)';
-	      style.msTransform =
-	      style.MozTransform =
-	      style.OTransform = 'translateX(' + dist + 'px)';
-	
-	    }
-	
-	    function animate(from, to, speed) {
-	
-	      // if not an animation, just reposition
-	      if (!speed) {
-	
-	        element.style.left = to + 'px';
-	        return;
-	
-	      }
-	
-	      var start = +new Date();
-	
-	      var timer = setInterval(function() {
-	
-	        var timeElap = +new Date() - start;
-	
-	        if (timeElap > speed) {
-	
-	          element.style.left = to + 'px';
-	
-	          if (delay) {
-	            begin();
-	          }
-	
-	          if (options.transitionEnd) {
-	            options.transitionEnd.call(event, getPos(), slides[index]);
-	          }
-	
-	          clearInterval(timer);
-	          return;
-	
-	        }
-	
-	        element.style.left = (( (to - from) * (Math.floor((timeElap / speed) * 100) / 100) ) + from) + 'px';
-	
-	      }, 4);
-	
-	    }
-	
-	    // setup auto slideshow
-	    var delay = options.auto || 0;
-	    var interval;
-	
-	    function begin() {
-	
-	      interval = setTimeout(next, delay);
-	
-	    }
-	
-	    function stop() {
-	
-	      delay = 0;
-	      clearTimeout(interval);
-	
-	    }
-	
-	    function restart() {
-	      stop();
-	      delay = options.auto || 0;
-	      begin();
-	    }
-	
-	    function isMouseEvent(e) {
-	      return /^mouse/.test(e.type);
-	    }
-	
-	    // setup initial vars
-	    var start = {};
-	    var delta = {};
-	    var isScrolling;
+	    // throttled setup
+	    var throttledSetup = throttle(setup);
 	
 	    // setup event capturing
 	    var events = {
 	
 	      handleEvent: function(event) {
+	        if (disabled) return;
+	
 	        switch (event.type) {
 	          case 'mousedown':
 	          case 'touchstart': this.start(event); break;
@@ -21249,20 +21144,20 @@
 	          case 'touchmove': this.move(event); break;
 	          case 'mouseup':
 	          case 'mouseleave':
-	          case 'touchend': offloadFn(this.end(event)); break;
+	          case 'touchend': this.end(event); break;
 	          case 'webkitTransitionEnd':
 	          case 'msTransitionEnd':
 	          case 'oTransitionEnd':
 	          case 'otransitionend':
-	          case 'transitionend': offloadFn(this.transitionEnd(event)); break;
-	          case 'resize': offloadFn(setup); break;
+	          case 'transitionend': this.transitionEnd(event); break;
+	          case 'resize': throttledSetup(); break;
 	        }
 	
 	        if (options.stopPropagation) {
 	          event.stopPropagation();
 	        }
-	
 	      },
+	
 	      start: function(event) {
 	        var touches;
 	
@@ -21302,6 +21197,7 @@
 	        }
 	
 	      },
+	
 	      move: function(event) {
 	        var touches;
 	
@@ -21351,22 +21247,21 @@
 	
 	            delta.x =
 	              delta.x /
-	                ( (!index && delta.x > 0 ||             // if first slide and sliding left
-	                  index === slides.length - 1 &&        // or if last slide and sliding right
-	                  delta.x < 0                           // and if sliding at all
+	              ( (!index && delta.x > 0 ||             // if first slide and sliding left
+	                 index === slides.length - 1 &&        // or if last slide and sliding right
+	                 delta.x < 0                           // and if sliding at all
 	                ) ?
-	                ( Math.abs(delta.x) / width + 1 )      // determine resistance level
-	                : 1 );                                 // no resistance if false
+	               ( Math.abs(delta.x) / width + 1 )      // determine resistance level
+	               : 1 );                                 // no resistance if false
 	
 	            // translate 1:1
 	            translate(index-1, delta.x + slidePos[index-1], 0);
 	            translate(index, delta.x + slidePos[index], 0);
 	            translate(index+1, delta.x + slidePos[index+1], 0);
 	          }
-	
 	        }
-	
 	      },
+	
 	      end: function(event) {
 	
 	        // measure duration
@@ -21374,28 +21269,30 @@
 	
 	        // determine if slide attempt triggers next/prev slide
 	        var isValidSlide =
-	              Number(duration) < 250 &&         // if slide duration is less than 250ms
-	              Math.abs(delta.x) > 20 ||         // and if slide amt is greater than 20px
-	              Math.abs(delta.x) > width/2;      // or if slide amt is greater than half the width
+	            Number(duration) < 250 &&         // if slide duration is less than 250ms
+	            Math.abs(delta.x) > 20 ||         // and if slide amt is greater than 20px
+	            Math.abs(delta.x) > width/2;      // or if slide amt is greater than half the width
 	
 	        // determine if slide attempt is past start and end
 	        var isPastBounds =
-	              !index && delta.x > 0 ||                      // if first slide and slide amt is greater than 0
-	              index === slides.length - 1 && delta.x < 0;   // or if last slide and slide amt is less than 0
+	            !index && delta.x > 0 ||                      // if first slide and slide amt is greater than 0
+	            index === slides.length - 1 && delta.x < 0;   // or if last slide and slide amt is less than 0
 	
 	        if (options.continuous) {
 	          isPastBounds = false;
 	        }
 	
-	        // determine direction of swipe (true:right, false:left)
-	        var direction = delta.x < 0;
+	        // OLD determine direction of swipe (true:right, false:left)
+	        // determine direction of swipe (1: backward, -1: forward)
+	        var direction = Math.abs(delta.x) / delta.x;
 	
 	        // if not scrolling vertically
 	        if (!isScrolling) {
 	
 	          if (isValidSlide && !isPastBounds) {
 	
-	            if (direction) {
+	            // if we're moving right
+	            if (direction < 0) {
 	
 	              if (options.continuous) { // we need to get the next in this direction in place
 	
@@ -21423,12 +21320,9 @@
 	              move(index, slidePos[index]+width, speed);
 	              move(circle(index-1), slidePos[circle(index-1)]+width, speed);
 	              index = circle(index-1);
-	
 	            }
 	
-	            if (options.callback) {
-	              options.callback(getPos(), slides[index]);
-	            }
+	            runCallback(getPos(), slides[index], direction);
 	
 	          } else {
 	
@@ -21444,9 +21338,7 @@
 	              move(index, 0, speed);
 	              move(index+1, width, speed);
 	            }
-	
 	          }
-	
 	        }
 	
 	        // kill touchmove and touchend event listeners until touchstart called again
@@ -21460,162 +21352,428 @@
 	        }
 	
 	      },
+	
 	      transitionEnd: function(event) {
-	        if (parseInt(event.target.getAttribute('data-index'), 10) === index) {
+	        var currentIndex = parseInt(event.target.getAttribute('data-index'), 10);
+	        if (currentIndex === index) {
+	          if (delay || options.autoRestart) restart();
 	
-	          if (delay || options.autoRestart) {
-	            restart();
-	          }
-	
-	          if (options.transitionEnd) {
-	            options.transitionEnd.call(event, getPos(), slides[index]);
-	          }
-	
+	          runTransitionEnd(getPos(), slides[index]);
 	        }
-	
 	      }
-	
 	    };
 	
 	    // trigger setup
 	    setup();
 	
 	    // start auto slideshow if applicable
-	    if (delay) {
-	      begin();
-	    }
+	    begin();
 	
+	    // Expose the Swipe API
+	    return {
+	      // initialize
+	      setup: setup,
+	
+	      // go to slide
+	      slide: function(to, speed) {
+	        stop();
+	        slide(to, speed);
+	      },
+	
+	      // move to previous
+	      prev: function() {
+	        stop();
+	        prev();
+	      },
+	
+	      // move to next
+	      next: function() {
+	        stop();
+	        next();
+	      },
+	
+	      // Restart slideshow
+	      restart: restart,
+	
+	      // cancel slideshow
+	      stop: stop,
+	
+	      // return current index position
+	      getPos: getPos,
+	
+	      // disable slideshow
+	      disable: disable,
+	
+	      // enable slideshow
+	      enable: enable,
+	
+	      // return total number of slides
+	      getNumSlides: function() { return length; },
+	
+	      // completely remove swipe
+	      kill: kill
+	    };
+	
+	    // remove all event listeners
+	    function detachEvents() {
+	      if (browser.addEventListener) {
+	        // remove current event listeners
+	        element.removeEventListener('touchstart', events, false);
+	        element.removeEventListener('mousedown', events, false);
+	        element.removeEventListener('webkitTransitionEnd', events, false);
+	        element.removeEventListener('msTransitionEnd', events, false);
+	        element.removeEventListener('oTransitionEnd', events, false);
+	        element.removeEventListener('otransitionend', events, false);
+	        element.removeEventListener('transitionend', events, false);
+	        root.removeEventListener('resize', events, false);
+	      } else {
+	        root.onresize = null;
+	      }
+	    }
 	
 	    // add event listeners
-	    if (browser.addEventListener) {
+	    function attachEvents() {
+	      if (browser.addEventListener) {
 	
-	      // set touchstart event on element
-	      if (browser.touch) {
-	        element.addEventListener('touchstart', events, false);
+	        // set touchstart event on element
+	        if (browser.touch) {
+	          element.addEventListener('touchstart', events, false);
+	        }
+	
+	        if (options.draggable) {
+	          element.addEventListener('mousedown', events, false);
+	        }
+	
+	        if (browser.transitions) {
+	          element.addEventListener('webkitTransitionEnd', events, false);
+	          element.addEventListener('msTransitionEnd', events, false);
+	          element.addEventListener('oTransitionEnd', events, false);
+	          element.addEventListener('otransitionend', events, false);
+	          element.addEventListener('transitionend', events, false);
+	        }
+	
+	        // set resize event on window
+	        root.addEventListener('resize', events, false);
+	
+	      } else {
+	        root.onresize = throttledSetup; // to play nice with old IE
 	      }
-	
-	      if (options.draggable) {
-	        element.addEventListener('mousedown', events, false);
-	      }
-	
-	      if (browser.transitions) {
-	        element.addEventListener('webkitTransitionEnd', events, false);
-	        element.addEventListener('msTransitionEnd', events, false);
-	        element.addEventListener('oTransitionEnd', events, false);
-	        element.addEventListener('otransitionend', events, false);
-	        element.addEventListener('transitionend', events, false);
-	      }
-	
-	      // set resize event on window
-	      root.addEventListener('resize', events, false);
-	
-	    } else {
-	
-	      root.onresize = function () { setup(); }; // to play nice with old IE
-	
 	    }
 	
-	    // expose the Swipe API
-	    return {
-	      setup: function() {
+	    // clone nodes when there is only two slides
+	    function cloneNode(el) {
+	      var clone = el.cloneNode(true);
+	      element.appendChild(clone);
 	
-	        setup();
+	      // tag these slides as clones (to remove them on kill)
+	      clone.setAttribute('data-cloned', true);
 	
-	      },
-	      slide: function(to, speed) {
+	      // Remove id from element
+	      clone.removeAttribute('id');
+	    }
 	
-	        // cancel slideshow
-	        stop();
+	    function setup() {
+	      // cache slides
+	      slides = element.children;
+	      length = slides.length;
 	
-	        slide(to, speed);
+	      // slides length correction, minus cloned slides
+	      for (var i = 0; i < slides.length; i++) {
+	        if (slides[i].getAttribute('data-cloned')) length--;
+	      }
 	
-	      },
-	      prev: function() {
+	      // set continuous to false if only one slide
+	      if (slides.length < 2) {
+	        options.continuous = false;
+	      }
 	
-	        // cancel slideshow
-	        stop();
+	      // special case if two slides
+	      if (browser.transitions && options.continuous && slides.length < 3) {
+	        cloneNode(slides[0]);
+	        cloneNode(slides[1]);
 	
-	        prev();
+	        slides = element.children;
+	      }
 	
-	      },
-	      next: function() {
+	      // create an array to store current positions of each slide
+	      slidePos = new Array(slides.length);
 	
-	        // cancel slideshow
-	        stop();
+	      // determine width of each slide
+	      width = container.getBoundingClientRect().width || container.offsetWidth;
 	
-	        next();
+	      element.style.width = (slides.length * width * 2) + 'px';
 	
-	      },
-	      restart: function() {
+	      // stack elements
+	      var pos = slides.length;
+	      while(pos--) {
+	        var slide = slides[pos];
 	
-	        // Restart slideshow
-	        restart();
+	        slide.style.width = width + 'px';
+	        slide.setAttribute('data-index', pos);
 	
-	      },
+	        if (browser.transitions) {
+	          slide.style.left = (pos * -width) + 'px';
+	          move(pos, index > pos ? -width : (index < pos ? width : 0), 0);
+	        }
+	      }
 	
-	      stop: function() {
+	      // reposition elements before and after index
+	      if (options.continuous && browser.transitions) {
+	        move(circle(index-1), -width, 0);
+	        move(circle(index+1), width, 0);
+	      }
 	
-	        // cancel slideshow
-	        stop();
+	      if (!browser.transitions) {
+	        element.style.left = (index * -width) + 'px';
+	      }
 	
-	      },
-	      getPos: function() {
+	      container.style.visibility = 'visible';
 	
-	        // return current index position
-	        return getPos();
+	      // reinitialize events
+	      detachEvents();
+	      attachEvents();
+	    }
 	
-	      },
-	      getNumSlides: function() {
+	    function prev() {
+	      if (disabled) return;
 	
-	        // return total number of slides
-	        return length;
-	      },
-	      kill: function() {
+	      if (options.continuous) {
+	        slide(index-1);
+	      } else if (index) {
+	        slide(index-1);
+	      }
+	    }
 	
-	        // cancel slideshow
-	        stop();
+	    function next() {
+	      if (disabled) return;
 	
-	        // reset element
-	        element.style.width = '';
-	        element.style.left = '';
+	      if (options.continuous) {
+	        slide(index+1);
+	      } else if (index < slides.length - 1) {
+	        slide(index+1);
+	      }
+	    }
 	
-	        // reset slides
-	        var pos = slides.length;
-	        while (pos--) {
+	    function runCallback(pos, index, dir) {
+	      if (options.callback) {
+	        options.callback(pos, index, dir);
+	      }
+	    }
 	
-	          var slide = slides[pos];
-	          slide.style.width = '';
-	          slide.style.left = '';
+	    function runTransitionEnd(pos, index) {
+	      if (options.transitionEnd) {
+	        options.transitionEnd(pos, index);
+	      }
+	    }
 	
-	          if (browser.transitions) {
-	            translate(pos, 0, 0);
+	    function circle(index) {
+	
+	      // a simple positive modulo using slides.length
+	      return (slides.length + (index % slides.length)) % slides.length;
+	    }
+	
+	    function getPos() {
+	      // Fix for the clone issue in the event of 2 slides
+	      var currentIndex = index;
+	
+	      if (currentIndex >= length) {
+	        currentIndex = currentIndex - length;
+	      }
+	
+	      return currentIndex;
+	    }
+	
+	    function slide(to, slideSpeed) {
+	
+	      // ensure to is of type 'number'
+	      to = typeof to !== 'number' ? parseInt(to, 10) : to;
+	
+	      // do nothing if already on requested slide
+	      if (index === to) return;
+	
+	      if (browser.transitions) {
+	
+	        var direction = Math.abs(index-to) / (index-to); // 1: backward, -1: forward
+	
+	        // get the actual position of the slide
+	        if (options.continuous) {
+	          var natural_direction = direction;
+	          direction = -slidePos[circle(to)] / width;
+	
+	          // if going forward but to < index, use to = slides.length + to
+	          // if going backward but to > index, use to = -slides.length + to
+	          if (direction !== natural_direction) {
+	            to = -direction * slides.length + to;
 	          }
 	
 	        }
 	
-	        // removed event listeners
-	        if (browser.addEventListener) {
+	        var diff = Math.abs(index-to) - 1;
 	
-	          // remove current event listeners
-	          element.removeEventListener('touchstart', events, false);
-	          element.removeEventListener('mousedown', events, false);
-	          element.removeEventListener('webkitTransitionEnd', events, false);
-	          element.removeEventListener('msTransitionEnd', events, false);
-	          element.removeEventListener('oTransitionEnd', events, false);
-	          element.removeEventListener('otransitionend', events, false);
-	          element.removeEventListener('transitionend', events, false);
-	          root.removeEventListener('resize', events, false);
-	
-	        }
-	        else {
-	
-	          root.onresize = null;
-	
+	        // move all the slides between index and to in the right direction
+	        while (diff--) {
+	          move( circle((to > index ? to : index) - diff - 1), width * direction, 0);
 	        }
 	
+	        to = circle(to);
+	
+	        move(index, width * direction, slideSpeed || speed);
+	        move(to, 0, slideSpeed || speed);
+	
+	        if (options.continuous) { // we need to get the next in place
+	          move(circle(to - direction), -(width * direction), 0);
+	        }
+	
+	      } else {
+	
+	        to = circle(to);
+	        animate(index * -width, to * -width, slideSpeed || speed);
+	        // no fallback for a circular continuous if the browser does not accept transitions
 	      }
-	    };
 	
+	      index = to;
+	      offloadFn(function() {
+	        runCallback(getPos(), slides[index], direction);
+	      });
+	    }
+	
+	    function move(index, dist, speed) {
+	      translate(index, dist, speed);
+	      slidePos[index] = dist;
+	    }
+	
+	    function translate(index, dist, speed) {
+	
+	      var slide = slides[index];
+	      var style = slide && slide.style;
+	
+	      if (!style) return;
+	
+	      style.webkitTransitionDuration =
+	        style.MozTransitionDuration =
+	        style.msTransitionDuration =
+	        style.OTransitionDuration =
+	        style.transitionDuration = speed + 'ms';
+	
+	      style.webkitTransform = 'translate(' + dist + 'px,0)' + 'translateZ(0)';
+	      style.msTransform =
+	        style.MozTransform =
+	        style.OTransform = 'translateX(' + dist + 'px)';
+	
+	    }
+	
+	    function animate(from, to, speed) {
+	
+	      // if not an animation, just reposition
+	      if (!speed) {
+	        element.style.left = to + 'px';
+	        return;
+	      }
+	
+	      var start = +new Date();
+	
+	      var timer = setInterval(function() {
+	        var timeElap = +new Date() - start;
+	
+	        if (timeElap > speed) {
+	
+	          element.style.left = to + 'px';
+	
+	          if (delay || options.autoRestart) restart();
+	
+	          runTransitionEnd(getPos(), slides[index]);
+	
+	          clearInterval(timer);
+	
+	          return;
+	        }
+	
+	        element.style.left = (( (to - from) * (Math.floor((timeElap / speed) * 100) / 100) ) + from) + 'px';
+	      }, 4);
+	
+	    }
+	
+	    function begin() {
+	      delay = options.auto || 0;
+	      if (delay) interval = setTimeout(next, delay);
+	    }
+	
+	    function stop() {
+	      delay = 0;
+	      clearTimeout(interval);
+	    }
+	
+	    function restart() {
+	      stop();
+	      begin();
+	    }
+	
+	    function disable() {
+	      stop();
+	      disabled = true;
+	    }
+	
+	    function enable() {
+	      disabled = false;
+	      restart();
+	    }
+	
+	    function isMouseEvent(e) {
+	      return /^mouse/.test(e.type);
+	    }
+	
+	    function kill() {
+	      // cancel slideshow
+	      stop();
+	
+	      // remove inline styles
+	      container.style.visibility = '';
+	
+	      // reset element
+	      element.style.width = '';
+	      element.style.left = '';
+	
+	      // reset slides
+	      var pos = slides.length;
+	      while (pos--) {
+	
+	        if (browser.transitions) {
+	          translate(pos, 0, 0);
+	        }
+	
+	        var slide = slides[pos];
+	
+	        // if the slide is tagged as clone, remove it
+	        if (slide.getAttribute('data-cloned')) {
+	          var _parent = slide.parentElement;
+	          _parent.removeChild(slide);
+	        }
+	
+	        // remove styles
+	        slide.style.width = '';
+	        slide.style.left = '';
+	
+	        slide.style.webkitTransitionDuration =
+	          slide.style.MozTransitionDuration =
+	          slide.style.msTransitionDuration =
+	          slide.style.OTransitionDuration =
+	          slide.style.transitionDuration = '';
+	
+	        slide.style.webkitTransform =
+	          slide.style.msTransform =
+	          slide.style.MozTransform =
+	          slide.style.OTransform = '';
+	
+	        // remove custom attributes (?)
+	        // slide.removeAttribute('data-index');
+	      }
+	
+	      // remove all events
+	      detachEvents();
+	
+	      // remove throttled function timeout
+	      throttledSetup.cancel();
+	    }
 	  }
 	
 	  if ( root.jQuery || root.Zepto ) {
@@ -21629,10 +21787,10 @@
 	  }
 	
 	  return Swipe;
-	
 	}));
+	
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
-
-/***/ }
+/***/ })
 /******/ ]);
 //# sourceMappingURL=bundle.js.map

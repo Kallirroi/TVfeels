@@ -34,7 +34,7 @@ var imgShader = {
     position: "absolute",
     left:0, top:0,
     height: "100%", width:"100%",
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(0,0,0,0)",
     transition: "all 1s ease"
 };
 
@@ -123,8 +123,7 @@ var Cell = React.createClass({
             overflow: "hidden",
             //borderLeft: "20px solid rgb(0,0,0)",
             backgroundColor: "rgb(0,0,0)",
-            boxSizing:"border-box",
-            border: "20px solid rgb(0,0,0)"
+            boxSizing:"border-box"
         };
 
         var videoElement = <div/>;
@@ -138,6 +137,7 @@ var Cell = React.createClass({
         if (scene) {
             startAt = Math.max(scene.first_timestamp, scene.start);
             thumbSrc = getThumbnailUrl(scene.media_url, startAt/1000, 3);
+            console.log('thumbSrc is ' + thumbSrc)
             if (this.props.isPlaying) {
                 var videoUrl = `${scene.media_url}#t=${startAt/1000},${scene.end/1000}`;
                 videoElement = <video style={videoStyle} src={videoUrl} autoPlay loop onPlaying={this.onPlaying}
@@ -145,7 +145,7 @@ var Cell = React.createClass({
                 var nextScene = this.getNextScene();
                 if (nextScene) {
                     var nextStartAt = Math.max(nextScene.first_timestamp, nextScene.start);
-                    thumbSrc = getThumbnailUrl(nextScene.media_url, nextStartAt/1000, 3)
+                    thumbSrc = getThumbnailUrl(nextScene.media_url, nextStartAt/1000, 3);
                 }
             }
         }
@@ -154,7 +154,6 @@ var Cell = React.createClass({
             <div style={divStyle} onClick={this.click}>
                 <img style={imgStyle} src={thumbSrc}/>
                 <div style={imgShader}></div>
-                <h1 style={h1Style}>{item.text.toUpperCase()}</h1>
                 <div style={{
                     position: "absolute",
                     left:0, top:0,
