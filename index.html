@@ -44,7 +44,7 @@
 			.enter()
 			.append("rect")
 			.attr("x", function(d,i) {
-				console.log(parseDate(d.date))
+				// console.log(parseDate(d.date))
 				return size * i;
 			})
 			.attr("y", 0)
@@ -79,6 +79,33 @@
 
 			    tooltip.style("visibility", "visible").text(d.emotion);
 				tooltip.style("top", (d3.event.pageY)+"px").style("left",(d3.event.pageX + 10)+"px")
+				var audioElement = document.createElement('audio');
+				switch (d.emotion) {
+					case "sadness":
+					audioElement.setAttribute('src', 'soundsMelody/sadness.wav');
+					audioElement.play();
+					break;
+					case "joy":
+					audioElement.setAttribute('src', 'soundsMelody/joy.wav');
+					audioElement.play();
+					break;
+					case "anger":
+					audioElement.setAttribute('src', 'soundsMelody/anger.wav');
+					audioElement.play();					
+					break;
+					case "surprise":
+					audioElement.setAttribute('src', 'soundsMelody/surprise.wav');
+					audioElement.play();				
+					break;
+					case "disgust":
+					audioElement.setAttribute('src', 'soundsMelody/disgust.wav');
+					audioElement.play();					
+					break;
+					case "contempt":
+					audioElement.setAttribute('src', 'soundsMelody/contempt.wav');
+					audioElement.play();
+					break;
+				}
 			})
 			.on('mouseout', function() {
 				d3.select(this)
